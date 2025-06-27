@@ -11,6 +11,8 @@ const Cart = () => {
 
   const { cartItems, incrementQuantity, decrementQuantity, removeFromCart } = useContext(CartContext);
 
+  console.log("🧾 Current cartItems:", cartItems);
+
   const [selectedCartItems, setSelectedCartItems] = useState([]);
 
   const [receiptFile, setReceiptFile] = useState(null);
@@ -51,11 +53,31 @@ const Cart = () => {
   const handleIncrement = (index) => {
     const productId = cartItems[index].product_id;
     incrementQuantity(productId);
+
+    // Update quantity in selectedCartItems if item is selected
+    setSelectedCartItems(prevSelected => {
+      return prevSelected.map(item => {
+        if (item.product_id === productId) {
+          return { ...item, quantity: item.quantity + 1 };
+        }
+        return item;
+      });
+    });
   };
 
   const handleDecrement = (index) => {
     const productId = cartItems[index].product_id;
     decrementQuantity(productId);
+
+    // Update quantity in selectedCartItems if item is selected
+    setSelectedCartItems(prevSelected => {
+      return prevSelected.map(item => {
+        if (item.product_id === productId && item.quantity > 1) {
+          return { ...item, quantity: item.quantity - 1 };
+        }
+        return item;
+      });
+    });
   };
 
   const handleRemove = (index) => {
@@ -167,12 +189,11 @@ const Cart = () => {
       <col style={{ width: '10%' }} />   {/* Quantity */}
       <col style={{ width: '10%' }} />   {/* Price */}
       <col style={{ width: '10%' }} />   {/* Total */}
-      <col style={{ width: '10%' }} />   {/* Order Type */}
       <col style={{ width: '10%' }} />   {/* Actions */}
     </colgroup>
     <thead>
       <tr style={{ color: '#4B929D', verticalAlign: 'middle' }}>
-        <th style={{ textAlign: 'center' }}>
+      <th style={{ textAlign: 'center' }}>
           <input
             type="checkbox"
             style={{ margin: 0 }}
@@ -186,7 +207,6 @@ const Cart = () => {
         <th style={{ textAlign: 'center' }}>Qty</th>
         <th style={{ textAlign: 'right' }}>Price</th>
         <th style={{ textAlign: 'right' }}>Total</th>
-        <th style={{ paddingLeft: '10px' }}>Order Type</th>
         <th></th>
       </tr>
     </thead>
@@ -224,7 +244,6 @@ const Cart = () => {
           </td>
           <td style={{ textAlign: 'right' }}>₱{item.ProductPrice.toFixed(2)}</td>
           <td style={{ textAlign: 'right' }}>₱{calculateTotal(item).toFixed(2)}</td>
-          <td style={{ paddingLeft: '10px' }}>{item.orderType}</td>
           <td style={{ textAlign: 'center' }}>
             <button className="btn btn-link text-danger p-0" onClick={() => handleRemove(i)}>
               <i className="bi bi-trash" style={{ fontSize: '1.2rem' }}></i>

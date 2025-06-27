@@ -1,4 +1,5 @@
-  import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect } from "react";
 import { Container } from "react-bootstrap";
 import { FaChevronDown, FaBell, FaSignOutAlt, FaBoxOpen, FaCheckCircle, FaSpinner, FaTruck, FaFilter, FaClock, FaUser, FaPhone, FaMapMarkerAlt, FaBox, FaTimesCircle, FaTruckPickup, FaTruckMoving, FaUndo } from "react-icons/fa";
 import { Card, Form } from "react-bootstrap";
@@ -7,7 +8,9 @@ import "./deliverymanagement.css";
 
 function DeliveryManagement() {
   const userRole = "Admin";
-  const userName = "Lim Alcovendas";
+  const [searchParams] = React.useState(() => new URLSearchParams(window.location.search));
+  const [authToken, setAuthToken] = useState(null);
+  const [userName, setUserName] = useState("Loading...");
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -16,8 +19,66 @@ function DeliveryManagement() {
   const [riderFilter, setRiderFilter] = useState("all");
 
   const [orders, setOrders] = useState([]);
+  const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
 
   const riders = {};
+
+  useEffect(() => {
+    const tokenFromUrl = searchParams.get('authorization');
+    const usernameFromUrl = searchParams.get('username');
+
+    if (tokenFromUrl) {
+      setAuthToken(tokenFromUrl);
+      localStorage.setItem("authToken", tokenFromUrl); // Save to localStorage
+    } else {
+      const storedToken = localStorage.getItem("authToken");
+      if (storedToken) {
+        setAuthToken(storedToken);
+      } else {
+        console.error("Authorization token not found in URL or localStorage.");
+      }
+    }
+
+    if (usernameFromUrl) {
+      setUserName(usernameFromUrl);
+      localStorage.setItem("userName", usernameFromUrl); // Save to localStorage
+    } else {
+      const storedUsername = localStorage.getItem("userName");
+      if (storedUsername) {
+        setUserName(storedUsername);
+      }
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!authToken) return;
+
+    const fetchPendingOrdersCount = async () => {
+      try {
+        const response = await fetch("http://localhost:7004/cart/admin/orders/pending", {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        // The backend endpoint returns list of pending orders, so count length
+        if (Array.isArray(data)) {
+          setPendingOrdersCount(data.length);
+        } else if (data.pending_orders_count !== undefined) {
+          setPendingOrdersCount(data.pending_orders_count);
+        } else {
+          setPendingOrdersCount(0);
+        }
+      } catch (error) {
+        console.error("Failed to fetch pending orders count:", error);
+      }
+    };
+
+    fetchPendingOrdersCount();
+  }, [authToken]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -138,7 +199,7 @@ function DeliveryManagement() {
                 <Card style={{ flex: "1", minWidth: "150px", padding: "20px", display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
                   <FaClock color="#d39e00" size={32} />
                   <span style={{ fontSize: "1rem", fontWeight: "400" }}>Pending</span>
-                  <span style={{ fontSize: "1.2rem", fontWeight: "700", textAlign: "center" }}>{statusCounts.pending}</span>
+                  <span style={{ fontSize: "1.2rem", fontWeight: "700", textAlign: "center" }}>{pendingOrdersCount}</span>
                 </Card>
                 <Card style={{ flex: "1", minWidth: "150px", padding: "20px", display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
                   <FaCheckCircle color="#198754" size={32} />

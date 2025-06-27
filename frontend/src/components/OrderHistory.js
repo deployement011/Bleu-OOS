@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Table, Form, Modal, Button } from 'react-bootstrap';
 import { EyeFill, XCircle } from 'react-bootstrap-icons';
 import './OrderHistory.css'; // Custom styles for OrderHistory component
@@ -18,6 +18,85 @@ const OrderHistory = () => {
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [orderToView, setOrderToView] = useState(null);
 
+  // Get auth token and username from localStorage or context
+  const token = localStorage.getItem('authToken');
+
+  // Extract username from JWT token if not stored separately
+  const getUsernameFromToken = (token) => {
+    if (!token) return null;
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          })
+          .join('')
+      );
+      const payload = JSON.parse(jsonPayload);
+      return payload.sub || payload.username || null;
+    } catch (e) {
+      console.error('Failed to parse token', e);
+      return null;
+    }
+  };
+
+  const username = getUsernameFromToken(token);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      if (!token || !username) return;
+
+      try {
+        // Fetch all orders history
+        const response = await fetch(`http://localhost:7004/cart/orders/history`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        const data = response.ok ? await response.json() : [];
+
+        // Separate orders by status
+        const pendingOrders = [];
+        const completedOrders = [];
+        const cancelledOrders = [];
+
+        data.forEach(order => {
+          // Calculate total for each order
+          const total = order.products.reduce((sum, p) => sum + p.price * p.quantity, 0);
+          const orderData = {
+            id: order.id,
+            orderType: order.orderType,
+            products: order.products,
+            status: order.status.toLowerCase(),
+            date: order.date,
+            total,
+          };
+
+          if (order.status.toLowerCase() === 'pending') {
+            pendingOrders.push(orderData);
+          } else if (order.status.toLowerCase() === 'completed') {
+            completedOrders.push(orderData);
+          } else if (order.status.toLowerCase() === 'cancelled') {
+            cancelledOrders.push(orderData);
+          }
+        });
+
+        setOrdersData({
+          pending: pendingOrders,
+          completed: completedOrders,
+          cancelled: cancelledOrders,
+        });
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+      }
+    };
+
+    fetchOrders();
+  }, [token, username]);
+
   const filteredOrders = (orders) => {
     return orders.filter(
       (order) =>
@@ -27,16 +106,13 @@ const OrderHistory = () => {
   };
 
   const getStatusBadge = (status) => {
-    switch (status) {
-      case 'pending':
-        return <span className="status-badge status-pending">Processing</span>;
-      case 'completed':
-        return <span className="status-badge status-completed">Completed</span>;
-      case 'cancelled':
-        return <span className="status-badge status-cancelled">Cancelled</span>;
-      default:
-        return <span className="status-badge">{status}</span>;
-    }
+    // Capitalize first letter of status
+    const capitalizedStatus = status.charAt(0).toUpperCase() + status.slice(1);
+    let className = "status-badge";
+    if (status === 'pending') className += " status-pending";
+    else if (status === 'completed') className += " status-completed";
+    else if (status === 'cancelled') className += " status-cancelled";
+    return <span className={className}>{capitalizedStatus}</span>;
   };
 
   const handleCancelClick = (order) => {
@@ -71,12 +147,12 @@ const OrderHistory = () => {
       <Table className="orders-table">
         <thead>
           <tr>
-            <th>No.</th>
             <th>Order Type</th>
             <th>Product</th>
             <th>Quantity</th>
             <th>Price</th>
             <th>Total</th>
+            <th>Date</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -88,32 +164,26 @@ const OrderHistory = () => {
                 <tr key={product.id}>
                   {index === 0 && (
                     <>
-                      <td rowSpan={order.products.length}>{order.id}</td>
                       <td rowSpan={order.products.length}>{order.orderType}</td>
                     </>
                   )}
                   <td>
-                    {/* Placeholder for product image */}
-                    <div
-                      style={{
-                        width: '50px',
-                        height: '50px',
-                        backgroundColor: '#ccc',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#666',
-                        fontSize: '12px',
-                        borderRadius: '4px',
-                      }}
-                    >
-                      Image
-                    </div>
                     <div>{product.name}</div>
                   </td>
                   <td>{product.quantity}</td>
                   <td>₱{product.price.toFixed(2)}</td>
                   <td>₱{(product.price * product.quantity).toFixed(2)}</td>
+                  {index === 0 && (
+                    <td rowSpan={order.products.length}>
+                      {(() => {
+                        const dateObj = new Date(order.date);
+                        const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+                        const day = dateObj.getDate().toString().padStart(2, '0');
+                        const year = dateObj.getFullYear();
+                        return `${month}/${day}/${year}`;
+                      })()}
+                    </td>
+                  )}
                   {index === 0 && <td rowSpan={order.products.length}>{getStatusBadge(order.status)}</td>}
                   {index === 0 && (
                     <td rowSpan={order.products.length}>
@@ -123,7 +193,8 @@ const OrderHistory = () => {
                       }}>
                         <EyeFill />
                       </button>
-                      {activeTab === 'pending' && (
+                      {/* Removed cancel order button as requested */}
+                      {/* {activeTab === 'pending' && (
                       <button
                         className="action-btn cancel"
                         title="Cancel Order"
@@ -132,7 +203,7 @@ const OrderHistory = () => {
                       >
                         <XCircle />
                       </button>
-                      )}
+                      )} */}
                     </td>
                   )}
                 </tr>

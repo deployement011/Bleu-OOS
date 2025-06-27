@@ -19,12 +19,17 @@ const CheckoutPage = () => {
     landmark: '',
   });
 
+  // Modal states
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
         const token = localStorage.getItem('authToken');
         if (!token) return;
-
+         
         const response = await fetch('http://localhost:4000/users/profile', {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -71,7 +76,11 @@ const CheckoutPage = () => {
     if (status === "success") {
       const savedData = localStorage.getItem("pendingOrderData");
       if (!savedData) return;
+      localStorage.removeItem("pendingOrderData");
       confirmPayment(JSON.parse(savedData));
+    } else if (status === "fail") {
+      setModalMessage("Payment was unsuccessful. Please try again.");
+      setShowErrorModal(true);
     }
   }, []);
 
@@ -90,23 +99,13 @@ const CheckoutPage = () => {
     const deliveryFee = orderType === "Delivery" ? 50 : 0;
     const total = subtotal + deliveryFee;
 
-    // Log payload for debugging
-    console.log("Confirming payment with:", {
-      username: savedUserData?.username,
-      order_type: orderType,
-      payment_method: paymentMethod,
-      subtotal,
-      delivery_fee: deliveryFee,
-      total,
-    });
-
     const cartPayload = cartItems.map(item => ({
-    product_id: item.product_id, // ✅ Required by backend
-    product_name: item.ProductName,
-    product_type: item.product_type || '',  // optional, if added in payload model
-    product_category: item.product_category || '',
-    quantity: item.quantity,
-    price: item.ProductPrice,
+      product_id: item.product_id,
+      product_name: item.ProductName,
+      product_type: item.ProductType || '',
+      product_category: item.ProductCategory || '',
+      quantity: item.quantity,
+      price: item.ProductPrice,
     }));
 
     const deliveryInfoPayload = orderType === "Delivery" ? {
@@ -145,9 +144,9 @@ const CheckoutPage = () => {
       const result = await response.json();
 
       if (response.ok) {
-        alert("Order placed successfully!");
+        setModalMessage("Order placed successfully!");
+        setShowSuccessModal(true);
         localStorage.removeItem("pendingOrderData");
-        navigate("/profile/orderhistory");
       } else {
         console.error("❌ Backend Validation Error:");
 
@@ -159,10 +158,13 @@ const CheckoutPage = () => {
           console.error("❌ Server Error:", result.detail);
         }
 
-        alert("Failed to confirm order.");
+        setModalMessage("Failed to confirm order. Please try again.");
+        setShowErrorModal(true);
       }
     } catch (error) {
       console.error("Payment confirmation error:", error);
+      setModalMessage("An error occurred while processing your payment.");
+      setShowErrorModal(true);
     }
   };
 
@@ -174,6 +176,18 @@ const CheckoutPage = () => {
     const subtotal = cartItems.reduce((acc, item) => acc + item.ProductPrice * item.quantity, 0);
     const deliveryFee = orderType === "Delivery" ? 50 : 0;
     const total = subtotal + deliveryFee;
+
+    // Validate required fields
+    if (orderType === "Delivery") {
+      const requiredFields = ['firstName', 'lastName', 'blockStreetSubdivision', 'city', 'province', 'landmark', 'email', 'phone'];
+      const missingFields = requiredFields.filter(field => !userData[field]);
+      
+      if (missingFields.length > 0) {
+        setModalMessage(`Please fill in all required fields: ${missingFields.join(', ')}`);
+        setShowErrorModal(true);
+        return;
+      }
+    }
 
     // Save current userData with updated delivery info inputs
     const currentUserData = { ...userData };
@@ -205,61 +219,115 @@ const CheckoutPage = () => {
       if (data.checkout_url) {
         window.location.href = data.checkout_url;
       } else {
-        alert("Failed to initiate payment");
+        setModalMessage("Failed to initiate payment");
+        setShowErrorModal(true);
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("An error occurred during payment");
+      setModalMessage("An error occurred during payment processing");
+      setShowErrorModal(true);
     }
+  };
+
+  const handleCloseSuccessModal = () => {
+    setShowSuccessModal(false);
+    navigate("/profile/orderhistory");
+  };
+
+  const handleCloseErrorModal = () => {
+    setShowErrorModal(false);
   };
 
   return (
     <div className="container py-5" style={{ minHeight: '100vh', marginTop: '100px' }}>
+      {/* Success Modal */}
+      <div className={`modal fade ${showSuccessModal ? 'show' : ''}`} style={{ display: showSuccessModal ? 'block' : 'none' }} id="successModal" tabIndex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+        <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-content">
+            <div className="modal-header bg-success">
+              <h5 className="modal-title" id="successModalLabel" style={{ color: 'black' }}>Success!</h5>
+              <button type="button" className="btn-close" onClick={handleCloseSuccessModal} aria-label="Close"></button>
+            </div>
+            <div className="modal-body">
+              <div className="text-center">
+                <i className="bi bi-check-circle-fill text-success" style={{ fontSize: '3rem' }}></i>
+                <p className="mt-3" style={{ color: 'black' }}>{modalMessage}</p>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-success" onClick={handleCloseSuccessModal}>Continue</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {showSuccessModal && <div className="modal-backdrop fade show"></div>}
+
+      {/* Error Modal */}
+      <div className={`modal fade ${showErrorModal ? 'show' : ''}`} style={{ display: showErrorModal ? 'block' : 'none' }} id="errorModal" tabIndex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+        <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-content">
+            <div className="modal-header bg-danger">
+              <h5 className="modal-title" id="errorModalLabel" style={{ color: 'black' }}>Error</h5>
+              <button type="button" className="btn-close" onClick={handleCloseErrorModal} aria-label="Close"></button>
+            </div>
+            <div className="modal-body">
+              <div className="text-center">
+                <i className="bi bi-exclamation-triangle-fill text-danger" style={{ fontSize: '3rem' }}></i>
+                <p className="mt-3" style={{ color: 'black' }}>{modalMessage}</p>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-danger" onClick={handleCloseErrorModal}>Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {showErrorModal && <div className="modal-backdrop fade show"></div>}
+
       <div className="bg-white p-4 rounded">
         <h2 className="mb-4" style={{ color: '#4B929D', textAlign: 'left' }}>Checkout</h2>
         <table className="table">
-  <thead>
-    <tr>
-      <th>Product</th>
-      <th>Type</th>
-      <th>Category</th>
-      <th>Quantity</th>
-      <th>Price</th>
-      <th>Total</th>
-      <th>Delivery Method</th>
-      <th>Payment Method</th>
-    </tr>
-  </thead>
-  <tbody>
-    {cartItems.length === 0 ? (
-      <tr><td colSpan="8" className="text-center">No items in cart.</td></tr>
-    ) : (
-      cartItems.map((item, index) => (
-        <tr key={index}>
-          <td>{item.ProductName}</td>
-          <td>{item.ProductType || '-'}</td>
-          <td>{item.ProductCategory || '-'}</td>
-          <td>{item.quantity}</td>
-          <td>₱{item.ProductPrice.toFixed(2)}</td>
-          <td>₱{(item.ProductPrice * item.quantity).toFixed(2)}</td>
-          <td>{orderType}</td>
-          <td>{paymentMethod}</td>
-        </tr>
-      ))
-    )}
-  </tbody>
-  <tfoot>
-    <tr>
-      <td colSpan="7" style={{ textAlign: 'right', fontWeight: 'bold' }}>Delivery Fee:</td>
-      <td>₱{orderType === 'Delivery' ? '50.00' : '0.00'}</td>
-    </tr>
-    <tr>
-      <td colSpan="7" style={{ textAlign: 'right', fontWeight: 'bold' }}>Grand Total:</td>
-      <td>₱{calculateTotal().toFixed(2)}</td>
-    </tr>
-  </tfoot>
-</table>
-
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Type</th>
+              <th>Category</th>
+              <th>Quantity</th>
+              <th>Price</th>
+              <th>Total</th>
+              <th>Delivery Method</th>
+              <th>Payment Method</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cartItems.length === 0 ? (
+              <tr><td colSpan="8" className="text-center">No items in cart.</td></tr>
+            ) : (
+              cartItems.map((item, index) => (
+                <tr key={index}>
+                  <td>{item.ProductName}</td>
+                  <td>{item.ProductType || '-'}</td>
+                  <td>{item.ProductCategory || '-'}</td>
+                  <td>{item.quantity}</td>
+                  <td>₱{item.ProductPrice.toFixed(2)}</td>
+                  <td>₱{(item.ProductPrice * item.quantity).toFixed(2)}</td>
+                  <td>{orderType}</td>
+                  <td>{paymentMethod}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colSpan="7" style={{ textAlign: 'right', fontWeight: 'bold' }}>Delivery Fee:</td>
+              <td>₱{orderType === 'Delivery' ? '50.00' : '0.00'}</td>
+            </tr>
+            <tr>
+              <td colSpan="7" style={{ textAlign: 'right', fontWeight: 'bold' }}>Grand Total:</td>
+              <td>₱{calculateTotal().toFixed(2)}</td>
+            </tr>
+          </tfoot>
+        </table>
 
         <div className="mt-4 p-3 bg-white rounded">
           <h2 className="mb-4" style={{ color: '#4B929D', textAlign: 'left' }}>Delivery Information</h2>

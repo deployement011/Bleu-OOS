@@ -8,9 +8,17 @@ import base64
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# ---- LOAD ENV ----
 load_dotenv()
 
+# ---- PAYMONGO CONFIG ----
+PAYMONGO_SECRET_KEY = os.getenv("PAYMONGO_SECRET_KEY")
+if not PAYMONGO_SECRET_KEY:
+    raise RuntimeError("PAYMONGO_SECRET_KEY not found in environment")
+
+PAYMONGO_API_URL = "https://api.paymongo.com/v1/checkout_sessions"
+
+# ---- FASTAPI SETUP ----
 logger = logging.getLogger(__name__)
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="http://localhost:4000/auth/token")
@@ -32,12 +40,6 @@ async def validate_token_and_roles(token: str, allowed_roles: List[str]):
     user_data = response.json()
     if user_data.get("userRole") not in allowed_roles:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
-
-# ---- PAYMONGO CONFIG ----
-# PAYMONGO_SECRET_KEY = os.getenv("PAYMONGO_SECRET_KEY")
-# if not PAYMONGO_SECRET_KEY:
-#     raise RuntimeError("PAYMONGO_SECRET_KEY not found in environment")
-# PAYMONGO_API_URL = "https://api.paymongo.com/v1/checkout_sessions"
 
 # ---- MODELS ----
 class CheckoutRequest(BaseModel):
@@ -151,7 +153,7 @@ async def confirm_payment(payload: ConfirmPaymentRequest, token: str = Depends(o
                     "Notes": payload.delivery_info.Notes or payload.notes or ""
                 }
                 delivery_response = await client.post(
-                    "http://localhost:7004/deliveryinfo",
+                    "http://localhost:7004/delivery/info",
                     json=delivery_info_payload,
                     headers={"Authorization": f"Bearer {token}"}
                 )
@@ -170,7 +172,7 @@ async def confirm_payment(payload: ConfirmPaymentRequest, token: str = Depends(o
                     "order_type": payload.order_type
                 }
                 cart_response = await client.post(
-                    "http://localhost:7004/cart",
+                    "http://localhost:7004/cart/",
                     json=cart_payload,
                     headers={"Authorization": f"Bearer {token}"}
                 )
@@ -185,6 +187,22 @@ async def confirm_payment(payload: ConfirmPaymentRequest, token: str = Depends(o
                 logger.error(f"No pending order found for user {payload.username}")
                 raise HTTPException(status_code=404, detail=f"No pending order found for user {payload.username}")
             finalize_response.raise_for_status()
+
+            # Step 4: Update order payment details
+            update_order_payload = {
+                "username": payload.username,
+                "payment_method": payload.payment_method,
+                "subtotal": payload.subtotal,
+                "delivery_fee": payload.delivery_fee,
+                "total_amount": payload.total,
+                "delivery_notes": payload.notes or (payload.delivery_info.Notes if payload.delivery_info else "")
+            }
+            update_order_response = await client.put(
+                "http://localhost:7004/cart/update-payment",
+                json=update_order_payload,
+                headers={"Authorization": f"Bearer {token}"}
+            )
+            update_order_response.raise_for_status()
 
             return {"message": "Payment confirmed and order placed successfully"}
 

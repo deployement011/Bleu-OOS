@@ -138,15 +138,16 @@ const MenuContent = () => {
       toast.error("You must be logged in to add to cart.");
       return;
     }
-
+ // or whatever your cart state is called
+    console.log("🛒 Item added to cart:", selectedItem);
     addToContextCart({
-      product_id: selectedItem.ProductID,
+    product_id: selectedItem.ProductID,
     ProductName: selectedItem.ProductName,
-    ProductPrice: selectedItem.ProductPrice,
+    ProductPrice: selectedItem.ProductPrice ?? 0,
     ProductImage: selectedItem.ProductImage,
-    ProductType: selectedItem.ProductTypeName,           // ✅ ADD THIS
-    ProductCategory: selectedItem.ProductCategory,  // ✅ add category
-      orderType: "Pick Up"
+    ProductType: selectedItem.ProductTypeName,    // ✅ lowercase
+    ProductCategory: selectedItem.ProductCategory, // ✅ lowercase
+    orderType: "Pick Up" 
     });
 
     toast.success(`${selectedItem.ProductName} added to cart!`);
@@ -274,7 +275,7 @@ const MenuContent = () => {
                     <h4 style={{ color: '#4b929d' }}>{selectedItem.ProductName}</h4>
                     <p className="text-muted">{selectedItem.ProductDescription}</p>
                     <p className="h5" style={{ textAlign: 'left' }}>₱{selectedItem.ProductPrice}</p>
-                    <div className="mt-4">
+                    {/* <div className="mt-4">
                       <h6>Order method:</h6>
                       <div className="btn-group w-100" role="group">
                         <input type="radio" className="btn-check" name="order-method" id="method-pickup" autoComplete="off" defaultChecked />
@@ -282,7 +283,7 @@ const MenuContent = () => {
                         <input type="radio" className="btn-check" name="order-method" id="method-delivery" autoComplete="off" />
                         <label className="btn btn-outline-secondary" htmlFor="method-delivery">Delivery</label>
                       </div>
-                    </div>
+                    </div> */}
                     <div className="mt-3">
                       <label htmlFor="order-notes" className="form-label">Add Notes:</label>
                       <textarea id="order-notes" className="form-control" rows="3" placeholder="Add any special instructions or notes here" value={orderNotes} onChange={(e) => setOrderNotes(e.target.value)} />

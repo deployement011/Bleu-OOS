@@ -1,4 +1,4 @@
-  .container-fluid{
+.container-fluid{
   margin-top: 5rem !important;
 }
 body, html {
@@ -59,4 +59,22 @@ body, html {
 .btn-group-toggle > button.btn-active-custom {
   background-color: #4B929D !important;
   color: white !important;
+}
+
+.quantity-btn {
+  background-color: #4B929D !important;
+  color: white !important;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+}
+
+.quantity-btn:hover {
+  background-color: #3a7a85;
 }

@@ -2,14 +2,18 @@ import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Table, Form, Modal, Button } from "react-bootstrap";
 import { CartFill, BellFill, PersonFill, Search, EyeFill, PencilFill, TrashFill, PrinterFill } from "react-bootstrap-icons";
 import { FaChevronDown, FaBell, FaAngleLeft, FaAngleRight, FaAngleDoubleLeft, FaAngleDoubleRight } from "react-icons/fa";
+import { useSearchParams } from "react-router-dom";
 import "../admin2/manageorder.css";
 import { FaSignOutAlt, FaUndo } from "react-icons/fa";
 const ManageOrders = () => {
   const userRole = "Admin";
-  const userName = "Lim Alcovendas";
+  const [searchParams] = useSearchParams();
+  const [authToken, setAuthToken] = useState(null);
+  const [userName, setUserName] = useState("Loading...");
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showItemsModal, setShowItemsModal] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
@@ -19,6 +23,34 @@ const ManageOrders = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+
+  useEffect(() => {
+    const tokenFromUrl = searchParams.get('authorization');
+    const usernameFromUrl = searchParams.get('username');
+
+    if (tokenFromUrl) {
+      setAuthToken(tokenFromUrl);
+      localStorage.setItem("authToken", tokenFromUrl); // Save to localStorage
+    } else {
+      // If not in URL, try getting from localStorage
+      const storedToken = localStorage.getItem("authToken");
+      if (storedToken) {
+        setAuthToken(storedToken);
+      } else {
+        console.error("Authorization token not found in URL or localStorage.");
+      }
+    }
+
+    if (usernameFromUrl) {
+      setUserName(usernameFromUrl);
+      localStorage.setItem("userName", usernameFromUrl); // Save to localStorage
+    } else {
+      const storedUsername = localStorage.getItem("userName");
+      if (storedUsername) {
+        setUserName(storedUsername);
+      }
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -36,13 +68,63 @@ const ManageOrders = () => {
   // Orders state to be fetched from backend
   const [orders, setOrders] = useState([]);
 
-  const filteredOrders = orders.filter(order => 
-    order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.id.toString().includes(searchTerm) ||
-    order.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.paymentMethod.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.orderType.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+  if (!authToken) return;
+
+  const fetchOrders = async () => {
+    try {
+      const response = await fetch("http://localhost:7004/cart/admin/orders/manage", {
+        headers: {
+          Authorization: `Bearer ${authToken}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("Backend raw data:", data);
+
+      const transformedOrders = data.map(order => ({
+        id: order.order_id,
+        customer: order.customer_name,
+        date: order.order_date,
+        orderType: order.order_type,
+        paymentMethod: order.payment_method,
+        total: order.total_amount,
+        status: order.order_status,
+        emailAddress: order.emailAddress,
+        phoneNumber: order.phoneNumber,
+        deliveryAddress: order.deliveryAddress,
+        deliveryNotes: order.deliveryNotes,
+        adminNotes: order.adminNotes || "",
+        statusHistory: order.statusHistory || [],
+        items: order.items || []  // ← DIRECTLY use the array
+      }));
+
+      setOrders(transformedOrders);
+    } catch (error) {
+      console.error("Failed to fetch orders:", error);
+    }
+  };
+
+  fetchOrders();
+}, [authToken]);
+
+
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = 
+      order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.id.toString().includes(searchTerm) ||
+      order.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.paymentMethod.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.orderType.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = statusFilter === "all" || order.status.toLowerCase() === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
 
   // Calculate pagination
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -69,7 +151,8 @@ const ManageOrders = () => {
   };
 
   const getStatusBadge = (status) => {
-    switch(status) {
+    const lowerStatus = status.toLowerCase();
+    switch(lowerStatus) {
       case 'pending':
         return <span className="status-badge status-pending">Pending</span>;
       case 'processing':
@@ -162,32 +245,48 @@ const ManageOrders = () => {
         <div className="table-container" style={{ paddingLeft: 0 }}>
           <div className="table-header d-flex justify-content-between align-items-center">
             <h5 style={{ color: "#4a9ba5", margin: 0, marginLeft: "10" }}>Recent Orders</h5>
-            <div className="position-relative" style={{ width: "300px" }}>
-              <Search 
-                className="position-absolute" 
-                style={{ top: "50%", left: "12px", color: "#495057", transform: "translateY(-50%)", fontSize: "1.2rem" }} 
-              />
-              <Form.Control 
-                type="text" 
-                placeholder="Search orders..." 
-                className="search-input ps-5" 
-                value={searchTerm}
-                style={{
-                  borderRadius: "20px",
-                  border: "1px solid #ced4da",
-                  paddingLeft: "2.5rem",
-                  paddingRight: "1rem",
-                  height: "38px",
-                  boxShadow: "none",
-                  transition: "border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out",
-                }}
+            <div className="d-flex align-items-center gap-3">
+              <div className="position-relative" style={{ width: "300px" }}>
+                <Search 
+                  className="position-absolute" 
+                  style={{ top: "50%", left: "12px", color: "#495057", transform: "translateY(-50%)", fontSize: "1.2rem" }} 
+                />
+                <Form.Control 
+                  type="text" 
+                  placeholder="Search orders..." 
+                  className="search-input ps-5" 
+                  value={searchTerm}
+                  style={{
+                    borderRadius: "20px",
+                    border: "1px solid #ced4da",
+                    paddingLeft: "2.5rem",
+                    paddingRight: "1rem",
+                    height: "38px",
+                    boxShadow: "none",
+                    transition: "border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out",
+                  }}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1); // Reset to first page when searching
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = "#80bdff"}
+                  onBlur={(e) => e.target.style.borderColor = "#ced4da"}
+                />
+              </div>
+              <Form.Select
+                value={statusFilter}
                 onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setCurrentPage(1); // Reset to first page when searching
+                  setStatusFilter(e.target.value);
+                  setCurrentPage(1); // Reset to first page when filtering
                 }}
-                onFocus={(e) => e.target.style.borderColor = "#80bdff"}
-                onBlur={(e) => e.target.style.borderColor = "#ced4da"}
-              />
+                style={{ width: "150px", borderRadius: "20px" }}
+              >
+                <option value="all">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="processing">Processing</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </Form.Select>
             </div>
           </div>
 
@@ -236,15 +335,6 @@ const ManageOrders = () => {
                     <td>
                       <button className="action-btn view" title="View" onClick={() => handleViewOrder(order)}>
                         <EyeFill />
-                      </button>
-                      <button className="action-btn edit" title="Update Status" onClick={() => handleUpdateStatus(order.id)}>
-                        <PencilFill />
-                      </button>
-                      <button className="action-btn delete" title="Cancel" onClick={() => handleCancelOrder(order.id)}>
-                        <TrashFill />
-                      </button>
-                      <button className="action-btn print" title="Print Receipt" onClick={() => handlePrintReceipt(order.id)}>
-                        <PrinterFill />
                       </button>
                     </td>
                   </tr>
@@ -350,8 +440,6 @@ const ManageOrders = () => {
                 <div className="invoice-section mb-3">
                   <h6>Customer Details</h6>
                   <div><strong>Name:</strong> {selectedOrder.customer}</div>
-                  <div><strong>Email:</strong> {selectedOrder.email || "N/A"}</div>
-                  <div><strong>Phone:</strong> {selectedOrder.phone || "N/A"}</div>
                 </div>
 
                 <div className="invoice-section mb-3">
@@ -370,8 +458,8 @@ const ManageOrders = () => {
                         <tr key={index}>
                           <td>{item.quantity}</td>
                           <td>{item.name}</td>
-                          <td>{item.price ? item.price.toFixed(2) : "N/A"}</td>
-                          <td>{item.price ? (item.price * item.quantity).toFixed(2) : "N/A"}</td>
+                          <td>{item.price ? item.price.toFixed(2) : ""}</td>
+                          <td>{item.price ? (item.price * item.quantity).toFixed(2) : ""}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -382,31 +470,15 @@ const ManageOrders = () => {
                 <div className="invoice-section mb-3">
                   <h6>Payment Info</h6>
                   <div><strong>Method:</strong> {selectedOrder.paymentMethod}</div>
-                  <div><strong>Reference No.:</strong> {selectedOrder.paymentReference || "N/A"}</div>
                 </div>
 
                 <div className="invoice-section mb-3">
-                  <h6>Status History</h6>
-                  {selectedOrder.statusHistory ? (
-                    <ul>
-                      {selectedOrder.statusHistory.map((statusEntry, idx) => (
-                        <li key={idx}>{statusEntry.status} - {statusEntry.timestamp}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div>No status history available</div>
-                  )}
                 </div>
 
                 <div className="invoice-section mb-3">
-                  <h6>Delivery Info</h6>
-                  <div><strong>Address:</strong> {selectedOrder.deliveryAddress || "N/A"}</div>
-                  <div><strong>Notes:</strong> {selectedOrder.deliveryNotes || "N/A"}</div>
                 </div>
 
                 <div className="invoice-section mb-3">
-                  <h6>Admin Notes</h6>
-                  <div>{selectedOrder.adminNotes || "No notes available"}</div>
                 </div>
               </>
             )}
