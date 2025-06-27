@@ -51,7 +51,7 @@ const OrderHistory = () => {
 
       try {
         // Fetch all orders history
-        const response = await fetch(`http://localhost:7004/cart/orders/history`, {
+        const response = await fetch(`https://ordering-service.onrender.com/cart/orders/history`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },

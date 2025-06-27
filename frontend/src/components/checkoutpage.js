@@ -30,7 +30,7 @@ const CheckoutPage = () => {
         const token = localStorage.getItem('authToken');
         if (!token) return;
          
-        const response = await fetch('http://localhost:4000/users/profile', {
+        const response = await fetch('https://bleu-ums.onrender.com/users/profile', {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -122,7 +122,7 @@ const CheckoutPage = () => {
     } : null;
 
     try {
-      const response = await fetch("http://localhost:7005/payment/confirm-payment", {
+      const response = await fetch("https://payment-service-oo77.onrender.com/payment/confirm-payment", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -201,7 +201,7 @@ const CheckoutPage = () => {
     }));
 
     try {
-      const response = await fetch("http://localhost:7005/payment/create-checkout", {
+      const response = await fetch("https://payment-service-oo77.onrender.com/payment/create-checkout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

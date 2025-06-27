@@ -30,7 +30,7 @@ const MenuContent = () => {
   }, []);
 
   useEffect(() => {
-    const API_BASE_URL = "http://127.0.0.1:8001";
+    const API_BASE_URL = "https://product-services-1.onrender.com";
 
     const fetchAllData = async () => {
       const token = localStorage.getItem("authToken");
@@ -235,7 +235,7 @@ const MenuContent = () => {
                 >
                   <div className="item-image-placeholder">
                     {item.ProductImage ?
-                      <img src={item.ProductImage.startsWith('http') ? item.ProductImage : `http://localhost:8001${item.ProductImage}`} alt={item.ProductName} />
+                      <img src={item.ProductImage.startsWith('http') ? item.ProductImage : `https://product-services-1.onrender.com${item.ProductImage}`} alt={item.ProductName} />
                       : 'Image'
                     }
                   </div>
@@ -264,7 +264,7 @@ const MenuContent = () => {
                     <div className="modal-image-placeholder">
                       <div className="d-flex align-items-center justify-content-center h-100 bg-light">
                         {selectedItem.ProductImage ? (
-                          <img src={selectedItem.ProductImage.startsWith('http') ? selectedItem.ProductImage : `http://localhost:8001${selectedItem.ProductImage}`} alt={selectedItem.ProductName} style={{ width: '100%', height: 'auto', maxHeight: '400px', objectFit: 'contain' }} />
+                          <img src={selectedItem.ProductImage.startsWith('http') ? selectedItem.ProductImage : `https://product-services-1.onrender.com${selectedItem.ProductImage}`} alt={selectedItem.ProductName} style={{ width: '100%', height: 'auto', maxHeight: '400px', objectFit: 'contain' }} />
                         ) : (
                           <span className="text-muted">Item Image</span>
                         )}

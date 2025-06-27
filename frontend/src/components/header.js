@@ -128,7 +128,7 @@ export default function AppHeader() {
     localStorage.removeItem('authToken');
     setIsLoggedIn(false);
     // Redirect to login page on frontend-auth at localhost:4002
-    window.location.href = 'http://localhost:4002/';
+    window.location.href = 'https://bleu-ums.vercel.app/';
   };
 
   const cancelLogout = () => {
@@ -311,7 +311,7 @@ export default function AppHeader() {
                 )}
 
                 {!isLoggedIn ? (
-                  <Nav.Link as={Link} to="http://localhost:4002">
+                  <Nav.Link as={Link} to="https://bleu-ums.vercel.app/">
                     <button className="btn btn-outline-primary">Sign In</button>
                   </Nav.Link>
                 ) : (

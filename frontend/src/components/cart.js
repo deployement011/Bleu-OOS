@@ -223,7 +223,7 @@ const Cart = () => {
           <td>
             <div className="d-flex align-items-center">
               <img
-                src={item.ProductImage ? (item.ProductImage.startsWith('http') ? item.ProductImage : `http://localhost:8001${item.ProductImage}`) : "https://via.placeholder.com/60"}
+                src={item.ProductImage ? (item.ProductImage.startsWith('http') ? item.ProductImage : `https://product-services-1.onrender.com${item.ProductImage}`) : "https://via.placeholder.com/60"}
                 alt={item.ProductName}
                 className="img-fluid me-2 rounded"
                 style={{ height: '60px', width: '60px', objectFit: 'cover' }}

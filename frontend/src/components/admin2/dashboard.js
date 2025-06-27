@@ -85,7 +85,7 @@ const Dashboard = () => {
       return; 
     }
 
-    fetch("http://localhost:7004/cart/admin/orders/total", {
+    fetch("https://ordering-service.onrender.com/cart/admin/orders/total", {
       headers: {
         // Use the token from the state
         Authorization: `Bearer ${authToken}`,
@@ -115,7 +115,7 @@ const Dashboard = () => {
       return;
     }
 
-    fetch("http://localhost:7004/cart/admin/orders/pending", {
+    fetch("https://ordering-service.onrender.com/cart/admin/orders/pending", {
       headers: {
         Authorization: `Bearer ${authToken}`,
       },
@@ -141,7 +141,7 @@ const Dashboard = () => {
       return;
     }
 
-    fetch("http://localhost:7004/cart/admin/orders/today_count", {
+    fetch("https://ordering-service.onrender.com/cart/admin/orders/today_count", {
       headers: {
         Authorization: `Bearer ${authToken}`,
       },
@@ -223,7 +223,7 @@ const Dashboard = () => {
                     <li
                       onClick={() => {
                         // 7. Logout now simply redirects, as there's no localStorage to clear.
-                        window.location.href = "http://localhost:4002/"; 
+                        window.location.href = "https://bleu-ums.vercel.app/"; 
                       }}
                       style={{ cursor: "pointer", padding: "8px 16px", display: "flex", alignItems: "center", gap: "8px", color: "#dc3545" }}
                       onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8d7da"}

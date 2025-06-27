@@ -73,7 +73,7 @@ const ManageOrders = () => {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch("http://localhost:7004/cart/admin/orders/manage", {
+      const response = await fetch("https://ordering-service.onrender.com/cart/admin/orders/manage", {
         headers: {
           Authorization: `Bearer ${authToken}`
         }

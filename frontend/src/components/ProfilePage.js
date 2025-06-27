@@ -32,7 +32,7 @@ const ProfilePage = () => {
         const token = localStorage.getItem('authToken');
         if (!token) return;
 
-        const response = await fetch('http://localhost:4000/users/profile', {
+        const response = await fetch('https://bleu-ums.onrender.com/users/profile', {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -178,7 +178,7 @@ const ProfilePage = () => {
       formData.append('phoneNumber', phone);
       // formData.append('birthday', birthday);
 
-      const response = await fetch('http://localhost:4000/users/profile/update', {
+      const response = await fetch('https://bleu-ums.onrender.com/users/profile/update', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',

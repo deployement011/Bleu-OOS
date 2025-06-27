@@ -55,7 +55,7 @@ function DeliveryManagement() {
 
     const fetchPendingOrdersCount = async () => {
       try {
-        const response = await fetch("http://localhost:7004/cart/admin/orders/pending", {
+        const response = await fetch(" https://ordering-service.onrender.com/cart/admin/orders/pending", {
           headers: {
             Authorization: `Bearer ${authToken}`,
           },
@@ -163,7 +163,7 @@ function DeliveryManagement() {
                                         <FaUndo /> Refresh
                                       </li>
                                       <li
-                                        onClick={() => { localStorage.removeItem("access_token"); window.location.href = "http://localhost:4002/"; }}
+                                        onClick={() => { localStorage.removeItem("access_token"); window.location.href = "https://bleu-ums.vercel.app/"; }}
                                         style={{ cursor: "pointer", padding: "8px 16px", display: "flex", alignItems: "center", gap: "8px", color: "#dc3545" }}
                                         onMouseEnter={e => e.currentTarget.style.backgroundColor = "#f8d7da"}
                                         onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
